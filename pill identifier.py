@@ -5,6 +5,7 @@ import torchvision.transforms as transforms
 from PIL import Image
 from torchvision.models import resnet18
 import numpy as np
+import time
 
 # Define the modified model architecture
 class CustomResNet(nn.Module):
@@ -17,7 +18,7 @@ class CustomResNet(nn.Module):
     def forward(self, x):
         return self.resnet(x)
 
-#set the for the model to run on
+#set the device for the model to run on
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 #load the saved model from its file location
@@ -54,9 +55,6 @@ contours = []
 #the region for text, to be used to later place and mask it
 text_region = [(0, 0), (350, 40)]  
 
-#merging threshold for rectangles
-merge_threshold = 50
-
 #create the window
 cv2.namedWindow("Pill Identification and Object Tracking")
 
@@ -76,34 +74,6 @@ while True:
     #apply mask to the text frame and make it black
     frame[mask > 0] = [0, 0, 0]
 
-    #run pill idenfitication
-    with torch.no_grad():
-        output = model(input_image)
-        _, predicted = torch.max(output, 1)
-    if track_object:
-        #pill identification. Process and output results
-        pill_label = class_labels[predicted.item()]
-        #if a pill, say so and make text green
-        if pill_label == 'pill':
-            pill_text = 'Pill'
-            pill_color = (0, 255, 0)
-            track_object = True
-        #if not a pill, say so and make text red
-        elif pill_label == 'non_pill':
-            pill_text = 'Not a Pill'
-            pill_color = (0, 0, 255)
-            track_object = False        
-        
-        #add indentification text
-        cv2.putText(frame, pill_text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, pill_color, 2)
-    
-    if not track_object and len(contours) == 0:
-        pill_text = 'No Object Detected'
-        pill_color = (0,0,255)
-        cv2.putText(frame, pill_text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, pill_color, 2)
-
-    #cv2.imshow("Pill Identification and Object Tracking", frame)
-
     #convert frame to color frame
     hsv_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
@@ -116,18 +86,7 @@ while True:
 
     #find contours in mask
     contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    
-    #min threshold to prioritize large contours
-    min_area_threshold = 1000
 
-    #filter contours by area to search for largest contour
-    large_contours = [cnt for cnt in contours if cv2.contourArea(cnt) > min_area_threshold]
-
-    if len(large_contours) > 0:
-        #sort contours by area to look for largest contour
-        large_contours = sorted(large_contours, key=cv2.contourArea, reverse=True)
-        largest_contour = large_contours[0]
-    
     if not track_object or len(contours) == 0:
         #check for contours
         if len(contours) > 0:
@@ -154,7 +113,6 @@ while True:
                 if len(box) > 0:
                     cv2.drawContours(frame, [box], 0, (0, 255, 0), 2)
 
-
                 #and set track object to true
                 track_object = True
             else:
@@ -180,6 +138,34 @@ while True:
         else:
             #track object is false if no points are found
             track_object = False
+
+    #run pill idenfitication
+    with torch.no_grad():
+        output = model(input_image)
+        _, predicted = torch.max(output, 1)
+    if track_object and len(contours) > 0:
+        #pill identification. Process and output results
+        pill_label = class_labels[predicted.item()]
+        #if a pill, say so and make text green
+        if pill_label == 'pill':
+            pill_text = 'Pill'
+            pill_color = (0, 255, 0)
+            track_object = True
+        #if not a pill, say so and make text red
+        if pill_label == 'non_pill':
+            pill_text = 'Not a Pill'
+            pill_color = (0, 0, 255)
+            track_object = False        
+        
+        #add indentification text
+        cv2.putText(frame, pill_text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, pill_color, 2)
+    
+    if not track_object and len(contours) == 0:
+        pill_text = 'No Object Detected'
+        pill_color = (0,0,255)
+        cv2.putText(frame, pill_text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, pill_color, 2)
+
+
 
     #display the frame
     cv2.imshow("Pill Identification and Object Tracking", frame)
