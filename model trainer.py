@@ -62,7 +62,7 @@ if __name__ == '__main__':
     optimizer = optim.Adam(model.parameters(), lr=0.001)  #optimize models parameters during training
 
 # Training loop
-num_epochs = 7  #number of training sessions the model will perform
+num_epochs = 5  #number of training sessions the model will perform
 threshold = 0.75  #accuracy threshold for model
 
 for epoch in range(num_epochs):
