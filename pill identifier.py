@@ -143,7 +143,7 @@ while True:
     with torch.no_grad():
         output = model(input_image)
         _, predicted = torch.max(output, 1)
-    if track_object and len(contours) > 0:
+    if track_object:# and len(contours) > 0:
         #pill identification. Process and output results
         pill_label = class_labels[predicted.item()]
         #if a pill, say so and make text green
@@ -156,16 +156,15 @@ while True:
             pill_text = 'Not a Pill'
             pill_color = (0, 0, 255)
             track_object = False        
-        
-        #add indentification text
-        cv2.putText(frame, pill_text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, pill_color, 2)
     
+    #if not tracking an object, say so and make text red
     if not track_object and len(contours) == 0:
         pill_text = 'No Object Detected'
         pill_color = (0,0,255)
-        cv2.putText(frame, pill_text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, pill_color, 2)
 
-
+    #add identification text to the frame
+    cv2.putText(frame, pill_text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, pill_color, 2)
+    print(pill_text)
 
     #display the frame
     cv2.imshow("Pill Identification and Object Tracking", frame)
