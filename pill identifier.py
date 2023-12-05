@@ -156,7 +156,7 @@ while True:
             pill_text = 'Not a Pill'
             pill_color = (0, 0, 255)
             track_object = False        
-    
+
     #if not tracking an object, say so and make text red
     if not track_object and len(contours) == 0:
         pill_text = 'No Object Detected'
